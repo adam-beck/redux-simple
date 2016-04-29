@@ -5,18 +5,25 @@ const Hapi = require('hapi');
 const server = new Hapi.Server();
 server.connection({
   host: '0.0.0.0',
-  port: '3005'
+  port: '5005'
 });
 
 
 server.route({
   method: 'GET',
-  path: '/foobar',
+  path: '/',
   handler: (request, reply) => {
     reply('works');
   }
 });
 
+server.route({
+  method: 'GET',
+  path: '/test',
+  handler: (request, reply) => {
+    reply('still works');
+  }
+});
 server.start(err => {
 
   if (err) {

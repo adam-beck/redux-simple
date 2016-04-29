@@ -3,7 +3,10 @@ const WebpackPlugin = require('hapi-webpack-plugin');
 const path = require('path');
 
 const server = new Server();
-server.connection({ port: 3000 });
+server.connection({
+  host: '0.0.0.0',
+  port: 5555
+});
 
 server.register([require('h2o2'), require('inert'), {
   register: WebpackPlugin,
@@ -13,24 +16,31 @@ server.register([require('h2o2'), require('inert'), {
     return console.error(error);
   }
 
+  /**
+   * For development, this sits in place of a production-ready server (i.e. nginx)
+   * Normally, this re-route to the node server would take place in the nginx configuration
+   * All requests that aren't prefixed with /api the index.html would be returned to help
+   * with react-router
+   */
   server.route({
     method: '*',
-    path: '/{all}',
+    path: '/api/{all*}',
     handler: {
       proxy: {
-        host: '0.0.0.0',
-        port: '3005',
-        passThrough: true,
-        onResponse: (err, res, request, reply, settings, ttl) => {
-          if (err || res && res.statusCode === 404) {
-            return reply.file(path.resolve(__dirname, '..', 'index.html'));
-          }
-
-          reply(res);
+        mapUri: (request, callback) => {
+          callback(null, `http://0.0.0.0:5005/${request.params.all || ''}`);
         }
       }
     }
-  })
+  });
+
+  server.route({
+    method: '*',
+    path: '/{all*}',
+    handler: (request, reply) => {
+      reply.file(path.resolve(__dirname, '..', 'index.html'));
+    }
+  });
 
   server.start(() => console.log(`Server running at: ${server.info.uri}`));
 });
